@@ -1,5 +1,6 @@
-
+# =============================
 # Data Loading
+# =============================
 
 
 # Set main project directory (adjust this path as needed)
@@ -78,13 +79,9 @@ technology_data <- lapply(technology_data, clean_data)
 
 
 
-
-
-
-
-
+# =============================
 # Data Preprocessing
-
+# =============================
 
 calculate_daily_returns <- function(data) {
   data$Daily_Return <- c(NA, diff(log(data$Adjusted.Close)))
@@ -111,7 +108,6 @@ filtered_technology_data <- lapply(technology_data, filter_date_range)
 
 
 
-install.packages("lubridate")
 library(lubridate)
 
 # Function to calculate VWAP for each week
@@ -139,6 +135,11 @@ technology_data_weekly <- lapply(filtered_technology_data, aggregate_to_weekly_w
 
 
 
+
+# =============================
+# Feature Engineering
+# =============================
+
 # Function to add lagged variables
 add_lagged_variables <- function(data, lag = 1) {
   data <- data %>%
@@ -157,7 +158,7 @@ technology_data_weekly <- lapply(technology_data_weekly, add_lagged_variables)
 
 
 
-install.packages("zoo")
+
 library(zoo)
 
 # Function to calculate moving averages for 4-week and 8-week windows, avoiding integer overflow
@@ -302,6 +303,12 @@ ggplot(health_data_weekly[[1]], aes(x = Week, y = Weekly_Close)) +
 # # Apply aggregation to health and technology data
 # aggregated_health_data <- aggregate_sector_data(health_data_weekly)
 # aggregated_technology_data <- aggregate_sector_data(technology_data_weekly)
+
+
+
+# =======================================
+# Data Aggregation & Feature Engineering
+# =======================================
 
 library(dplyr)
 
@@ -623,9 +630,10 @@ ggpairs(aggregated_technology_data[, c("Sector_Weekly_Volume",
 
 
 
+# =============================
+# Model Development
+# =============================
 
-
-# Data Modeling
 
 install.packages("randomForest")
 install.packages("caret")
@@ -1216,3 +1224,13 @@ print(interactive_plot)
 
 
 
+# =============================
+# Model Evaluation
+# =============================
+
+
+
+
+# =============================
+# Data Visualisation
+# =============================
