@@ -1,6 +1,6 @@
-# =============================
-# Data Loading
-# =============================
+###########################################################
+#                     Data Loading
+###########################################################
 
 
 # Set main project directory (adjust this path as needed)
@@ -79,9 +79,9 @@ technology_data <- lapply(technology_data, clean_data)
 
 
 
-# =============================
-# Data Preprocessing
-# =============================
+###########################################################
+#                     Data Preprocessing
+###########################################################
 
 calculate_daily_returns <- function(data) {
   data$Daily_Return <- c(NA, diff(log(data$Adjusted.Close)))
@@ -137,11 +137,10 @@ technology_data_weekly <- lapply(filtered_technology_data, aggregate_to_weekly_w
 
 
 
+###########################################################
+#          Data Aggregation & Feature Engineering
+###########################################################
 
-
-# =======================================
-# Data Aggregation & Feature Engineering
-# =======================================
 
 library(dplyr)
 
@@ -327,9 +326,13 @@ aggregated_health_data <- add_bollinger_bands(aggregated_health_data)
 aggregated_technology_data <- add_bollinger_bands(aggregated_technology_data)
 
 
-# =============================
-# Interim Data analysis
-# =============================
+
+
+
+
+###########################################################
+#               Exploratory Data Analysis
+###########################################################
 
 library(ggplot2)
 library(dplyr)
@@ -555,7 +558,9 @@ ggplot() +
 
 
 
-
+###########################################################
+#                  Feature Importance
+###########################################################
 
 
 # =====================================
@@ -718,7 +723,7 @@ ggplot(top10_features, aes(x = reorder(Feature, Importance), y = Importance)) +
 
 
 ###########################################################
-#                 RANDOM FOREST PIPELINE
+#              Model - RANDOM FOREST PIPELINE
 ###########################################################
 
 # ============= 1. SETUP & DATA PREP =============
@@ -937,7 +942,7 @@ ggplot(tech_rf_results, aes(x = Residual)) +
 
 
 ###########################################################
-#                     XGBOOST PIPELINE
+#              Model - XGBOOST PIPELINE
 ###########################################################
 
 # ============= 1. SETUP & DATA PREP =============
@@ -1165,6 +1170,16 @@ ggplot(tech_xgb_results, aes(x = Residual)) +
 
 
 
+
+
+
+
+
+
+###########################################################
+#                 Data Explainability 
+###########################################################
+
 # Install and load required libraries
 if (!requireNamespace("ggplot2", quietly = TRUE)) {
   install.packages("ggplot2")
@@ -1306,13 +1321,10 @@ plot(shap_xgb_tech) +
 
 
 
+###########################################################
+#                 INF4000 VISUALIZATIONS 
+###########################################################
 
-
-
-
-
-
-# ============= 4. INF4000VISUALIZATION =============
 
 
 library(ggplot2)
