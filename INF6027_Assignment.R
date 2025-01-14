@@ -136,173 +136,6 @@ technology_data_weekly <- lapply(filtered_technology_data, aggregate_to_weekly_w
 
 
 
-# =============================
-# Feature Engineering
-# =============================
-
-# Function to add lagged variables
-add_lagged_variables <- function(data, lag = 1) {
-  data <- data %>%
-    mutate(
-      Lagged_Weekly_Return = lag(Weekly_Return, n = lag),
-      Lagged_Weekly_Volatility = lag(Weekly_Volatility, n = lag)
-    )
-  return(data)
-}
-
-# Apply the lag function to weekly aggregated datasets
-health_data_weekly <- lapply(health_data_weekly, add_lagged_variables)
-technology_data_weekly <- lapply(technology_data_weekly, add_lagged_variables)
-
-
-
-
-
-
-library(zoo)
-
-# Function to calculate moving averages for 4-week and 8-week windows, avoiding integer overflow
-add_moving_averages <- function(data) {
-  data <- data %>%
-    mutate(
-      MA4_Weekly_Volume = rollmean(as.numeric(Weekly_Volume), k = 4, fill = NA, align = "right"),
-      MA8_Weekly_Volume = rollmean(as.numeric(Weekly_Volume), k = 8, fill = NA, align = "right"),
-      MA4_Weekly_Close = rollmean(Weekly_Close, k = 4, fill = NA, align = "right"),
-      MA8_Weekly_Close = rollmean(Weekly_Close, k = 8, fill = NA, align = "right")
-    )
-  return(data)
-}
-
-# Apply moving averages to each dataset
-health_data_weekly <- lapply(health_data_weekly, add_moving_averages)
-technology_data_weekly <- lapply(technology_data_weekly, add_moving_averages)
-
-
-
-
-
-
-
-
-
-# Function to compute weekly price change percentages
-add_weekly_price_change <- function(data) {
-  data <- data %>%
-    mutate(
-      Weekly_Price_Change = (Weekly_Close - lag(Weekly_Close)) / lag(Weekly_Close) * 100
-    )
-  return(data)
-}
-
-# Apply price change calculation to each dataset
-health_data_weekly <- lapply(health_data_weekly, add_weekly_price_change)
-technology_data_weekly <- lapply(technology_data_weekly, add_weekly_price_change)
-
-
-
-
-
-add_rsi <- function(data, n = 14) {
-  data <- data %>%
-    mutate(
-      Change = Weekly_Close - lag(Weekly_Close),
-      Gain = ifelse(Change > 0, Change, 0),
-      Loss = ifelse(Change < 0, abs(Change), 0),
-      Avg_Gain = rollmean(Gain, k = n, fill = NA, align = "right"),
-      Avg_Loss = rollmean(Loss, k = n, fill = NA, align = "right"),
-      RS = Avg_Gain / Avg_Loss,
-      RSI = 100 - (100 / (1 + RS))
-    )
-  return(data)
-}
-health_data_weekly <- lapply(health_data_weekly, add_rsi)
-technology_data_weekly <- lapply(technology_data_weekly, add_rsi)
-
-
-
-
-
-add_macd <- function(data, short = 12, long = 26, signal = 9) {
-  data <- data %>%
-    mutate(
-      EMA_Short = zoo::rollmean(Weekly_Close, k = short, fill = NA, align = "right"),
-      EMA_Long = zoo::rollmean(Weekly_Close, k = long, fill = NA, align = "right"),
-      MACD = EMA_Short - EMA_Long,
-      Signal_Line = zoo::rollmean(MACD, k = signal, fill = NA, align = "right")
-    )
-  return(data)
-}
-health_data_weekly <- lapply(health_data_weekly, add_macd)
-technology_data_weekly <- lapply(technology_data_weekly, add_macd)
-
-
-
-
-
-add_atr <- function(data, n = 14) {
-  data <- data %>%
-    mutate(
-      TR = pmax(Weekly_High - Weekly_Low, abs(Weekly_High - lag(Weekly_Close)), abs(Weekly_Low - lag(Weekly_Close))),
-      ATR = rollmean(TR, k = n, fill = NA, align = "right")
-    )
-  return(data)
-}
-health_data_weekly <- lapply(health_data_weekly, add_atr)
-technology_data_weekly <- lapply(technology_data_weekly, add_atr)
-
-
-
-
-add_bollinger_bands <- function(data, n = 20) {
-  data <- data %>%
-    mutate(
-      MA_Close = rollmean(Weekly_Close, k = n, fill = NA, align = "right"),
-      Std_Dev = rollapply(Weekly_Close, width = n, FUN = sd, fill = NA, align = "right"),
-      Upper_Band = MA_Close + (2 * Std_Dev),
-      Lower_Band = MA_Close - (2 * Std_Dev)
-    )
-  return(data)
-}
-health_data_weekly <- lapply(health_data_weekly, add_bollinger_bands)
-technology_data_weekly <- lapply(technology_data_weekly, add_bollinger_bands)
-
-
-
-
-
-
-
-
-
-library(ggplot2)
-ggplot(health_data_weekly[[1]], aes(x = Week, y = Weekly_Close)) +
-  geom_line() +
-  ggtitle("Weekly Close Prices in Health Sector") +
-  theme_minimal()
-
-
-
-# library(dplyr)
-# # Aggregate function to combine sector data
-# aggregate_sector_data <- function(data_list) {
-#   aggregated_data <- do.call(rbind, data_list) %>%
-#     group_by(Week) %>%
-#     summarize(
-#       Sector_Weekly_Volume = sum(Weekly_Volume, na.rm = TRUE),
-#       Sector_Weekly_High = max(Weekly_High, na.rm = TRUE),
-#       Sector_Weekly_Low = min(Weekly_Low, na.rm = TRUE),
-#       Sector_Weekly_Close = mean(Weekly_Close, na.rm = TRUE),
-#       Sector_Weekly_Return = mean(Weekly_Return, na.rm = TRUE),
-#       Sector_Weekly_Volatility = mean(Weekly_Volatility, na.rm = TRUE),
-#       Sector_VWAP = sum(Weekly_Volume * Weekly_Close, na.rm = TRUE) /
-#         sum(Weekly_Volume, na.rm = TRUE)
-#     )
-#   return(aggregated_data)
-# }
-# 
-# # Apply aggregation to health and technology data
-# aggregated_health_data <- aggregate_sector_data(health_data_weekly)
-# aggregated_technology_data <- aggregate_sector_data(technology_data_weekly)
 
 
 
@@ -366,17 +199,6 @@ aggregate_sector_data <- function(data_list, weights = NULL) {
 # Apply the enhanced aggregation function to health and technology data
 aggregated_health_data <- aggregate_sector_data(health_data_weekly)
 aggregated_technology_data <- aggregate_sector_data(technology_data_weekly)
-
-
-
-
-
-
-
-
-
-
-
 
 
 
@@ -816,496 +638,78 @@ ggplot(top10_features, aes(x = reorder(Feature, Importance), y = Importance)) +
 
 
 
-install.packages("randomForest")
-install.packages("caret")
-library(randomForest)
-library(caret)
-
-
-
-# Handle missing values by removing rows with missing values
-aggregated_health_data <- na.omit(aggregated_health_data)
-aggregated_technology_data <- na.omit(aggregated_technology_data)
-
-# Train Random Forest model for the Health Sector
-health_rf <- randomForest(Sector_Weekly_Volatility ~ Sector_Weekly_Volume + Sector_Weekly_Price_Change + 
-                            Sector_VWAP + Lagged_Sector_Weekly_Return + MA4_Sector_Weekly_Close + 
-                            MA8_Sector_Weekly_Close + RSI + MACD, 
-                          data = aggregated_health_data, ntree = 500, importance = TRUE)
-
-# Train Random Forest model for the Technology Sector
-tech_rf <- randomForest(Sector_Weekly_Volatility ~ Sector_Weekly_Volume + Sector_Weekly_Price_Change + 
-                          Sector_VWAP + Lagged_Sector_Weekly_Return + MA4_Sector_Weekly_Close + 
-                          MA8_Sector_Weekly_Close + RSI + MACD, 
-                        data = aggregated_technology_data, ntree = 500, importance = TRUE)
-
-# Print model summaries
-print("Health Sector Random Forest Model:")
-print(health_rf)
-
-print("Technology Sector Random Forest Model:")
-print(tech_rf)
-
-# Extract and visualize feature importance for the Health Sector
-health_importance <- importance(health_rf)
-barplot(health_importance[, "IncNodePurity"], 
-        main = "Feature Importance: Health Sector", 
-        horiz = TRUE, 
-        names.arg = rownames(health_importance), 
-        las = 1, col = "blue")
-
-# Extract and visualize feature importance for the Technology Sector
-tech_importance <- importance(tech_rf)
-barplot(tech_importance[, "IncNodePurity"], 
-        main = "Feature Importance: Technology Sector", 
-        horiz = TRUE, 
-        names.arg = rownames(tech_importance), 
-        las = 1, col = "red")
-
-# Line Plot: Relationships between Variables for Health Sector
-ggplot(aggregated_health_data, aes(x = Week)) +
-  geom_line(aes(y = Sector_Weekly_Volatility, color = "Volatility"), size = 1) +
-  geom_line(aes(y = Lagged_Sector_Weekly_Return, color = "Lagged Return"), size = 1) +
-  geom_line(aes(y = MA4_Sector_Weekly_Close, color = "MA4 Close"), size = 1) +
-  geom_line(aes(y = RSI, color = "RSI"), size = 1) +
-  scale_color_manual(
-    values = c("Volatility" = "purple", "Lagged Return" = "blue", 
-               "MA4 Close" = "green", "RSI" = "red"),
-    breaks = c("Volatility", "Lagged Return", "MA4 Close", "RSI")
-  ) +
-  labs(
-    title = "Relationships: Indicators vs Volatility (Health Sector)", 
-    x = "Week", y = "Value", color = "Variable"
-  ) +
-  theme_minimal()
-
-# Line Plot: Relationships between Variables for Technology Sector
-ggplot(aggregated_technology_data, aes(x = Week)) +
-  geom_line(aes(y = Sector_Weekly_Volatility, color = "Volatility"), size = 1) +
-  geom_line(aes(y = Lagged_Sector_Weekly_Return, color = "Lagged Return"), size = 1) +
-  geom_line(aes(y = MA4_Sector_Weekly_Close, color = "MA4 Close"), size = 1) +
-  geom_line(aes(y = RSI, color = "RSI"), size = 1) +
-  scale_color_manual(
-    values = c("Volatility" = "purple", "Lagged Return" = "blue", 
-               "MA4 Close" = "green", "RSI" = "red"),
-    breaks = c("Volatility", "Lagged Return", "MA4 Close", "RSI")
-  ) +
-  labs(
-    title = "Relationships: Indicators vs Volatility (Technology Sector)", 
-    x = "Week", y = "Value", color = "Variable"
-  ) +
-  theme_minimal()
-
-
-
-
-
-
-
-# Install and load ggplot2
-install.packages("ggplot2")
-library(ggplot2)
-
-# Convert feature importance to a data frame for visualization
-health_importance_df <- data.frame(
-  Feature = rownames(health_importance),
-  Importance = health_importance[, "IncNodePurity"]
-)
-
-tech_importance_df <- data.frame(
-  Feature = rownames(tech_importance),
-  Importance = tech_importance[, "IncNodePurity"]
-)
-
-# Fancy Feature Importance Bar Plot for Health Sector
-ggplot(health_importance_df, aes(x = reorder(Feature, Importance), y = Importance)) +
-  geom_bar(stat = "identity", fill = "skyblue", color = "black", width = 0.7) +
-  coord_flip() +
-  labs(
-    title = "Feature Importance: Health Sector",
-    x = "Features",
-    y = "Importance (Node Purity)"
-  ) +
-  theme_minimal(base_size = 14) +
-  theme(
-    plot.title = element_text(hjust = 0.5, face = "bold", size = 16),
-    axis.text.x = element_text(angle = 45, hjust = 1),
-    axis.text.y = element_text(face = "bold"),
-    panel.grid.major = element_line(color = "gray80", linetype = "dashed")
-  )
-
-# Fancy Feature Importance Bar Plot for Technology Sector
-ggplot(tech_importance_df, aes(x = reorder(Feature, Importance), y = Importance)) +
-  geom_bar(stat = "identity", fill = "coral", color = "black", width = 0.7) +
-  coord_flip() +
-  labs(
-    title = "Feature Importance: Technology Sector",
-    x = "Features",
-    y = "Importance (Node Purity)"
-  ) +
-  theme_minimal(base_size = 14) +
-  theme(
-    plot.title = element_text(hjust = 0.5, face = "bold", size = 16),
-    axis.text.x = element_text(angle = 45, hjust = 1),
-    axis.text.y = element_text(face = "bold"),
-    panel.grid.major = element_line(color = "gray80", linetype = "dashed")
-  )
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-# =============================
-# Model Development
-# =============================
-
-library(caret)  # For data splitting and model evaluation
-library(dplyr)  # For data manipulation
-library(tidyr)  # For reshaping data
-library(ggplot2)  # For visualization
-library(plotly)  # For interactive plots
-
-# Function to prepare data for regression
-prepare_data <- function(data) {
-  # Select relevant predictors and target variable
-  data <- data %>%
-    select(Sector_Weekly_Volume, Sector_Weekly_Price_Change, Sector_VWAP, 
-           Lagged_Sector_Weekly_Return, Sector_Weekly_Volatility) %>%
-    filter(!is.na(Sector_Weekly_Volatility))  # Ensure no missing target variable
-  return(data)
-}
-
-# Prepare the health and technology sector data
-health_model_data <- prepare_data(aggregated_health_data)
-tech_model_data <- prepare_data(aggregated_technology_data)
-
-# Split data into training and testing sets (80-20 split)
-set.seed(123)  # Ensure reproducibility
-train_index_health <- createDataPartition(health_model_data$Sector_Weekly_Volatility, p = 0.8, list = FALSE)
-train_index_tech <- createDataPartition(tech_model_data$Sector_Weekly_Volatility, p = 0.8, list = FALSE)
-
-health_train <- health_model_data[train_index_health, ]
-health_test <- health_model_data[-train_index_health, ]
-tech_train <- tech_model_data[train_index_tech, ]
-tech_test <- tech_model_data[-train_index_tech, ]
-
-# Train regression models
-health_model <- lm(Sector_Weekly_Volatility ~ Sector_Weekly_Volume + Sector_Weekly_Price_Change + 
-                     Sector_VWAP + Lagged_Sector_Weekly_Return, data = health_train)
-
-tech_model <- lm(Sector_Weekly_Volatility ~ Sector_Weekly_Volume + Sector_Weekly_Price_Change + 
-                   Sector_VWAP + Lagged_Sector_Weekly_Return, data = tech_train)
-
-# Display model summaries
-cat("\nHealth Sector Model Summary:\n")
-summary(health_model)
-
-cat("\nTechnology Sector Model Summary:\n")
-summary(tech_model)
-
-# Function to evaluate model performance
-evaluate_model <- function(actual, predicted) {
-  data.frame(
-    RMSE = sqrt(mean((actual - predicted)^2)),
-    MAE = mean(abs(actual - predicted)),
-    R2 = cor(actual, predicted)^2
-  )
-}
-
-# Predictions and evaluations for health sector (training)
-health_train_predictions <- predict(health_model, newdata = health_train)
-health_train_evaluation <- evaluate_model(health_train$Sector_Weekly_Volatility, health_train_predictions)
-
-# Predictions and evaluations for health sector (testing)
-health_test_predictions <- predict(health_model, newdata = health_test)
-health_test_evaluation <- evaluate_model(health_test$Sector_Weekly_Volatility, health_test_predictions)
-
-# Predictions and evaluations for technology sector (training)
-tech_train_predictions <- predict(tech_model, newdata = tech_train)
-tech_train_evaluation <- evaluate_model(tech_train$Sector_Weekly_Volatility, tech_train_predictions)
-
-# Predictions and evaluations for technology sector (testing)
-tech_test_predictions <- predict(tech_model, newdata = tech_test)
-tech_test_evaluation <- evaluate_model(tech_test$Sector_Weekly_Volatility, tech_test_predictions)
-
-# Calculate accuracy in percentage from R²
-health_train_accuracy <- health_train_evaluation$R2 * 100
-health_test_accuracy <- health_test_evaluation$R2 * 100
-
-tech_train_accuracy <- tech_train_evaluation$R2 * 100
-tech_test_accuracy <- tech_test_evaluation$R2 * 100
-
-# Print evaluation metrics and accuracies
-cat("\nHealth Sector Training Evaluation:\n")
-print(health_train_evaluation)
-cat("Health Sector Training Accuracy: ", round(health_train_accuracy, 2), "%\n")
-
-cat("\nHealth Sector Testing Evaluation:\n")
-print(health_test_evaluation)
-cat("Health Sector Testing Accuracy: ", round(health_test_accuracy, 2), "%\n")
-
-cat("\nTechnology Sector Training Evaluation:\n")
-print(tech_train_evaluation)
-cat("Technology Sector Training Accuracy: ", round(tech_train_accuracy, 2), "%\n")
-
-cat("\nTechnology Sector Testing Evaluation:\n")
-print(tech_test_evaluation)
-cat("Technology Sector Testing Accuracy: ", round(tech_test_accuracy, 2), "%\n")
-
-# Prepare data for health sector visualization
-health_test$Predicted_Volatility <- health_test_predictions
-health_long <- health_test %>%
-  mutate(Index = 1:nrow(health_test)) %>%
-  pivot_longer(cols = c(Sector_Weekly_Volatility, Predicted_Volatility),
-               names_to = "Type", values_to = "Volatility")
-
-# Prepare data for technology sector visualization
-tech_test$Predicted_Volatility <- tech_test_predictions
-tech_long <- tech_test %>%
-  mutate(Index = 1:nrow(tech_test)) %>%
-  pivot_longer(cols = c(Sector_Weekly_Volatility, Predicted_Volatility),
-               names_to = "Type", values_to = "Volatility")
-
-# Create line plot for health sector
-health_plot <- ggplot(health_long, aes(x = Index, y = Volatility, color = Type)) +
-  geom_line(linewidth = 1) +
-  labs(
-    title = "Health Sector: Actual vs Predicted Volatility",
-    x = "Index",
-    y = "Volatility",
-    color = "Type"
-  ) +
-  scale_color_manual(
-    values = c("Sector_Weekly_Volatility" = "blue", "Predicted_Volatility" = "red"),
-    labels = c("Actual Volatility", "Predicted Volatility")
-  ) +
-  theme_minimal()
-
-# Convert to interactive plot using Plotly
-health_plot_interactive <- ggplotly(health_plot)
-
-# Create line plot for technology sector
-tech_plot <- ggplot(tech_long, aes(x = Index, y = Volatility, color = Type)) +
-  geom_line(linewidth = 1) +
-  labs(
-    title = "Technology Sector: Actual vs Predicted Volatility",
-    x = "Index",
-    y = "Volatility",
-    color = "Type"
-  ) +
-  scale_color_manual(
-    values = c("Sector_Weekly_Volatility" = "blue", "Predicted_Volatility" = "red"),
-    labels = c("Actual Volatility", "Predicted Volatility")
-  ) +
-  theme_minimal()
-
-# Convert to interactive plot using Plotly
-tech_plot_interactive <- ggplotly(tech_plot)
-
-# Display interactive plots
-print(health_plot_interactive)
-print(tech_plot_interactive)
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-# Install and load necessary libraries
-install.packages("xgboost")
-# Install necessary libraries
-# Install necessary libraries
-install.packages("xgboost")
-install.packages("caret")
-install.packages("dplyr")
-install.packages("tidyr")
-install.packages("ggplot2")
-install.packages("plotly")
-library(xgboost)
-library(caret)
 library(dplyr)
-library(tidyr)
+library(randomForest)
 library(ggplot2)
-library(plotly)
 
-# Function to prepare data for XGBoost
-prepare_xgb_data <- function(data) {
-  predictors <- data %>%
-    select(Sector_Weekly_Volume, Sector_Weekly_Price_Change, Sector_VWAP, Lagged_Sector_Weekly_Return)
-  target <- data$Sector_Weekly_Volatility
-  predictors_matrix <- as.matrix(predictors)
-  return(list(predictors = predictors_matrix, target = target))
-}
+# =====================================
+# 2. Remove Rows with Missing Data
+# =====================================
+# Assume you have a dataframe 'aggregated_health_data' which contains:
+#   Sector_Weekly_Volatility,
+#   Lagged_Sector_Weekly_Return, Lagged_Sector_Weekly_Volatility,
+#   MA4_Sector_Weekly_Close, MA8_Sector_Weekly_Close,
+#   RSI, MACD, ATR,
+#   Sector_Weekly_Price_Change, Sector_Weekly_Volume, ...
+# and potentially other features.
 
-# Prepare health sector data
-health_train_xgb <- prepare_xgb_data(health_train)
-health_test_xgb <- prepare_xgb_data(health_test)
+# Step A: Remove any rows containing NA values in those columns.
+aggregated_technology_data_clean <- na.omit(aggregated_technology_data)
 
-# Prepare technology sector data
-tech_train_xgb <- prepare_xgb_data(tech_train)
-tech_test_xgb <- prepare_xgb_data(tech_test)
+# Optional: Check if NA values remain
+sapply(aggregated_technology_data_clean, function(x) sum(is.na(x)))
+# Should return all zeros if cleaning was successful
 
-# Train XGBoost models
-health_xgb <- xgboost(
-  data = health_train_xgb$predictors,
-  label = health_train_xgb$target,
-  nrounds = 100,
-  objective = "reg:squarederror",
-  eta = 0.1,
-  max_depth = 6,
-  subsample = 0.8,
-  colsample_bytree = 0.8,
-  verbose = 0
+# =====================================
+# 3. Build a Random Forest Model
+# =====================================
+# We'll predict 'Sector_Weekly_Volatility' using several features
+set.seed(123)  # For reproducibility
+
+rf_health <- randomForest(
+  Sector_Weekly_Volatility ~ Lagged_Sector_Weekly_Return + 
+    Lagged_Sector_Weekly_Volatility + 
+    MA4_Sector_Weekly_Close + 
+    MA8_Sector_Weekly_Close + 
+    RSI + MACD + ATR + 
+    Sector_Weekly_Price_Change + 
+    Sector_Weekly_Volume,
+  data = aggregated_technology_data_clean,
+  ntree = 300,
+  importance = TRUE
 )
 
-tech_xgb <- xgboost(
-  data = tech_train_xgb$predictors,
-  label = tech_train_xgb$target,
-  nrounds = 100,
-  objective = "reg:squarederror",
-  eta = 0.1,
-  max_depth = 6,
-  subsample = 0.8,
-  colsample_bytree = 0.8,
-  verbose = 0
+# Print model summary
+print(rf_health)
+
+# =====================================
+# 4. View Feature Importance
+# =====================================
+# 'importance()' shows which predictors the Random Forest found most useful
+feat_imp <- importance(rf_health, type = 1)  # type=1: Increase in MSE
+feat_imp_df <- data.frame(
+  Feature = rownames(feat_imp),
+  Importance = feat_imp[, 1]
 )
 
-# Function to evaluate model performance
-evaluate_model <- function(actual, predicted) {
-  data.frame(
-    RMSE = sqrt(mean((actual - predicted)^2)),
-    MAE = mean(abs(actual - predicted)),
-    R2 = cor(actual, predicted)^2
-  )
-}
+# Sort by importance descending
+feat_imp_df <- feat_imp_df[order(feat_imp_df$Importance, decreasing = TRUE), ]
 
-# Evaluate on training and testing data for health sector
-health_train_predictions <- predict(health_xgb, newdata = health_train_xgb$predictors)
-health_train_evaluation <- evaluate_model(health_train_xgb$target, health_train_predictions)
+# Optional: Take top 10 if you have many features
+top10_features <- head(feat_imp_df, 10)
 
-health_test_predictions <- predict(health_xgb, newdata = health_test_xgb$predictors)
-health_test_evaluation <- evaluate_model(health_test_xgb$target, health_test_predictions)
-
-# Evaluate on training and testing data for technology sector
-tech_train_predictions <- predict(tech_xgb, newdata = tech_train_xgb$predictors)
-tech_train_evaluation <- evaluate_model(tech_train_xgb$target, tech_train_predictions)
-
-tech_test_predictions <- predict(tech_xgb, newdata = tech_test_xgb$predictors)
-tech_test_evaluation <- evaluate_model(tech_test_xgb$target, tech_test_predictions)
-
-# Calculate accuracy in percentage from R²
-health_test_accuracy <- health_test_evaluation$R2 * 100
-tech_test_accuracy <- tech_test_evaluation$R2 * 100
-
-# Print evaluations with accuracy percentage
-cat("\nHealth Sector Training Evaluation:\n")
-print(health_train_evaluation)
-
-cat("\nHealth Sector Testing Evaluation:\n")
-print(health_test_evaluation)
-cat("Health Sector Test Accuracy: ", round(health_test_accuracy, 2), "%\n")
-
-cat("\nTechnology Sector Training Evaluation:\n")
-print(tech_train_evaluation)
-
-cat("\nTechnology Sector Testing Evaluation:\n")
-print(tech_test_evaluation)
-cat("Technology Sector Test Accuracy: ", round(tech_test_accuracy, 2), "%\n")
-
-# Visualization for health sector
-health_test$Predicted_Volatility <- health_test_predictions
-health_long <- health_test %>%
-  mutate(Index = 1:nrow(health_test)) %>%
-  pivot_longer(cols = c(Sector_Weekly_Volatility, Predicted_Volatility),
-               names_to = "Type", values_to = "Volatility")
-
-health_plot <- ggplot(health_long, aes(x = Index, y = Volatility, color = Type)) +
-  geom_line(linewidth = 1) +
+# =====================================
+# 5. Visualize Feature Importance
+# =====================================
+ggplot(top10_features, aes(x = reorder(Feature, Importance), y = Importance)) +
+  geom_bar(stat = "identity", fill = "steelblue") +
+  coord_flip() +
   labs(
-    title = "Health Sector: Actual vs Predicted Volatility (XGBoost)",
-    x = "Index",
-    y = "Volatility",
-    color = "Type"
-  ) +
-  scale_color_manual(
-    values = c("Sector_Weekly_Volatility" = "blue", "Predicted_Volatility" = "red"),
-    labels = c("Actual Volatility", "Predicted Volatility")
+    title = "Top 10 Feature Importance: technology Sector (Random Forest)",
+    x = "Features",
+    y = "Importance (IncMSE)"
   ) +
   theme_minimal()
-
-health_plot_interactive <- ggplotly(health_plot)
-
-# Visualization for technology sector
-tech_test$Predicted_Volatility <- tech_test_predictions
-tech_long <- tech_test %>%
-  mutate(Index = 1:nrow(tech_test)) %>%
-  pivot_longer(cols = c(Sector_Weekly_Volatility, Predicted_Volatility),
-               names_to = "Type", values_to = "Volatility")
-
-tech_plot <- ggplot(tech_long, aes(x = Index, y = Volatility, color = Type)) +
-  geom_line(linewidth = 1) +
-  labs(
-    title = "Technology Sector: Actual vs Predicted Volatility (XGBoost)",
-    x = "Index",
-    y = "Volatility",
-    color = "Type"
-  ) +
-  scale_color_manual(
-    values = c("Sector_Weekly_Volatility" = "blue", "Predicted_Volatility" = "red"),
-    labels = c("Actual Volatility", "Predicted Volatility")
-  ) +
-  theme_minimal()
-
-tech_plot_interactive <- ggplotly(tech_plot)
-
-# Display plots
-print(health_plot_interactive)
-print(tech_plot_interactive)
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 
@@ -1317,27 +721,27 @@ print(tech_plot_interactive)
 #                 RANDOM FOREST PIPELINE
 ###########################################################
 
-# 1. LOAD LIBRARIES
+# ============= 1. SETUP & DATA PREP =============
 install.packages("randomForest")
 install.packages("caret")
 install.packages("dplyr")
+install.packages("ggplot2")
+
 library(randomForest)
 library(caret)
 library(dplyr)
+library(ggplot2)
 
-# ---------------------------------------------------------
-# 2. DATA PREPARATION
-# ---------------------------------------------------------
 # We'll assume you have two data frames:
-#    aggregated_health_data
-#    aggregated_technology_data
-# each containing your top 10 features + 'Sector_Weekly_Volatility'.
+#   aggregated_health_data
+#   aggregated_technology_data
+# each containing your chosen top 10 features (plus 'Sector_Weekly_Volatility').
 
-# (A) Remove Missing Rows
+# (A) Handle Missing Values by Removing Rows with NAs
 health_data_clean <- na.omit(aggregated_health_data)
 tech_data_clean   <- na.omit(aggregated_technology_data)
 
-# (B) Specify your top 10 features (adjust as needed)
+# (B) Define top features (edit as needed)
 health_features <- c(
   "Sector_Weekly_Volume", 
   "Lagged_Sector_Weekly_Volatility", 
@@ -1349,6 +753,7 @@ health_features <- c(
   "MA8_Sector_Weekly_Close", 
   "Sector_Weekly_Price_Change"
 )
+
 tech_features <- c(
   "Sector_Weekly_Volume", 
   "Lagged_Sector_Weekly_Volatility", 
@@ -1366,24 +771,20 @@ set.seed(123)
 
 # Health
 train_idx_health <- createDataPartition(
-  health_data_clean$Sector_Weekly_Volatility, 
-  p = 0.8, list = FALSE
+  health_data_clean$Sector_Weekly_Volatility, p = 0.8, list = FALSE
 )
 health_train <- health_data_clean[ train_idx_health, ]
 health_test  <- health_data_clean[-train_idx_health, ]
 
 # Technology
 train_idx_tech <- createDataPartition(
-  tech_data_clean$Sector_Weekly_Volatility, 
-  p = 0.8, list = FALSE
+  tech_data_clean$Sector_Weekly_Volatility, p = 0.8, list = FALSE
 )
 tech_train <- tech_data_clean[ train_idx_tech, ]
 tech_test  <- tech_data_clean[-train_idx_tech, ]
 
-# ---------------------------------------------------------
-# 3. MODEL TRAINING (RANDOM FOREST)
-# ---------------------------------------------------------
-# 3A. Health Sector
+# ============= 2. MODEL TRAINING =============
+# Random Forest for Health Sector
 set.seed(123)
 rf_health <- randomForest(
   formula = as.formula(
@@ -1394,7 +795,7 @@ rf_health <- randomForest(
   importance = TRUE
 )
 
-# 3B. Technology Sector
+# Random Forest for Technology Sector
 set.seed(123)
 rf_tech <- randomForest(
   formula = as.formula(
@@ -1405,10 +806,8 @@ rf_tech <- randomForest(
   importance = TRUE
 )
 
-# ---------------------------------------------------------
-# 4. MODEL EVALUATION
-# ---------------------------------------------------------
-# Define helper function for metrics
+# ============= 3. EVALUATION =============
+# Helper function for RMSE, MAE, R-squared
 evaluate_model <- function(actual, predicted) {
   rmse_val <- sqrt(mean((actual - predicted)^2))
   mae_val  <- mean(abs(actual - predicted))
@@ -1416,25 +815,706 @@ evaluate_model <- function(actual, predicted) {
   data.frame(RMSE = rmse_val, MAE = mae_val, R2 = r2_val)
 }
 
-# 4A. Predictions & Metrics - Health
+# Predictions & metrics (Health)
 pred_rf_health_train <- predict(rf_health, newdata = health_train)
 pred_rf_health_test  <- predict(rf_health, newdata = health_test)
 
 rf_health_train_eval <- evaluate_model(health_train$Sector_Weekly_Volatility, pred_rf_health_train)
 rf_health_test_eval  <- evaluate_model(health_test$Sector_Weekly_Volatility,  pred_rf_health_test)
 
-# 4B. Predictions & Metrics - Technology
+# Predictions & metrics (Tech)
 pred_rf_tech_train <- predict(rf_tech, newdata = tech_train)
 pred_rf_tech_test  <- predict(rf_tech, newdata = tech_test)
 
 rf_tech_train_eval <- evaluate_model(tech_train$Sector_Weekly_Volatility, pred_rf_tech_train)
 rf_tech_test_eval  <- evaluate_model(tech_test$Sector_Weekly_Volatility,  pred_rf_tech_test)
 
-# 4C. Print or Store Results
-cat("=== Random Forest: Health Sector ===\n")
+# Print results
+cat("\n=== Random Forest: Health Sector ===\n")
 cat("Training:\n"); print(rf_health_train_eval)
 cat("Testing:\n");  print(rf_health_test_eval)
 
 cat("\n=== Random Forest: Technology Sector ===\n")
 cat("Training:\n"); print(rf_tech_train_eval)
 cat("Testing:\n");  print(rf_tech_test_eval)
+
+# ============= 4. VISUALIZATION =============
+# We'll create 3 example plots for each sector to interpret the results.
+
+## 4A. Health Sector Visuals
+# 1) Scatter Plot: Actual vs. Predicted on Test
+health_rf_results <- data.frame(
+  Actual = health_test$Sector_Weekly_Volatility,
+  Predicted = pred_rf_health_test
+)
+
+ggplot(health_rf_results, aes(x = Actual, y = Predicted)) +
+  geom_point(color = "blue", alpha = 0.7) +
+  geom_abline(slope = 1, intercept = 0, color = "red") +
+  labs(
+    title = "Health Sector (RF) - Actual vs. Predicted Volatility",
+    x = "Actual Volatility",
+    y = "Predicted Volatility"
+  ) +
+  theme_minimal()
+
+# 2) Time Series Plot of Actual vs Predicted
+# (Assumes 'health_test' has a 'Week' column or similar time index)
+health_rf_results$Week <- health_test$Week  # If your data uses 'Week' or 'Date'
+health_rf_long <- reshape2::melt(health_rf_results, id.vars = "Week")
+
+ggplot(health_rf_long, aes(x = Week, y = value, color = variable)) +
+  geom_line(size = 1) +
+  labs(
+    title = "Health Sector (RF) - Actual vs. Predicted Over Time",
+    x = "Week",
+    y = "Volatility",
+    color = "Series"
+  ) +
+  theme_minimal()
+
+# 3) Residual Distribution
+health_rf_results$Residual <- health_rf_results$Actual - health_rf_results$Predicted
+
+ggplot(health_rf_results, aes(x = Residual)) +
+  geom_histogram(bins = 30, fill = "steelblue", color = "white") +
+  labs(
+    title = "Health Sector (RF) - Residual Distribution",
+    x = "Residual (Actual - Predicted)",
+    y = "Count"
+  ) +
+  theme_minimal()
+
+## 4B. Technology Sector Visuals
+# 1) Scatter Plot: Actual vs. Predicted on Test
+tech_rf_results <- data.frame(
+  Actual = tech_test$Sector_Weekly_Volatility,
+  Predicted = pred_rf_tech_test
+)
+
+ggplot(tech_rf_results, aes(x = Actual, y = Predicted)) +
+  geom_point(color = "darkgreen", alpha = 0.7) +
+  geom_abline(slope = 1, intercept = 0, color = "red") +
+  labs(
+    title = "Technology Sector (RF) - Actual vs. Predicted Volatility",
+    x = "Actual Volatility",
+    y = "Predicted Volatility"
+  ) +
+  theme_minimal()
+
+# 2) Time Series Plot of Actual vs Predicted
+tech_rf_results$Week <- tech_test$Week  # adapt for your time variable
+tech_rf_long <- reshape2::melt(tech_rf_results, id.vars = "Week")
+
+ggplot(tech_rf_long, aes(x = Week, y = value, color = variable)) +
+  geom_line(size = 1) +
+  labs(
+    title = "Technology Sector (RF) - Actual vs. Predicted Over Time",
+    x = "Week",
+    y = "Volatility",
+    color = "Series"
+  ) +
+  theme_minimal()
+
+# 3) Residual Distribution
+tech_rf_results$Residual <- tech_rf_results$Actual - tech_rf_results$Predicted
+
+ggplot(tech_rf_results, aes(x = Residual)) +
+  geom_histogram(bins = 30, fill = "darkolivegreen3", color = "white") +
+  labs(
+    title = "Technology Sector (RF) - Residual Distribution",
+    x = "Residual (Actual - Predicted)",
+    y = "Count"
+  ) +
+  theme_minimal()
+
+
+
+
+
+
+
+
+
+###########################################################
+#                     XGBOOST PIPELINE
+###########################################################
+
+# ============= 1. SETUP & DATA PREP =============
+install.packages("xgboost")
+install.packages("caret")
+install.packages("dplyr")
+install.packages("ggplot2")
+install.packages("reshape2")
+
+library(xgboost)
+library(caret)
+library(dplyr)
+library(ggplot2)
+library(reshape2)
+
+# (A) Remove NA rows
+health_data_clean <- na.omit(aggregated_health_data)
+tech_data_clean   <- na.omit(aggregated_technology_data)
+
+# (B) Define top features
+health_features <- c(
+  "Sector_Weekly_Volume", 
+  "Lagged_Sector_Weekly_Volatility", 
+  "ATR", 
+  "MACD", 
+  "Lagged_Sector_Weekly_Return", 
+  "MA4_Sector_Weekly_Close", 
+  "RSI", 
+  "MA8_Sector_Weekly_Close", 
+  "Sector_Weekly_Price_Change"
+)
+
+tech_features <- c(
+  "Sector_Weekly_Volume", 
+  "Lagged_Sector_Weekly_Volatility", 
+  "ATR", 
+  "MACD", 
+  "Lagged_Sector_Weekly_Return", 
+  "MA4_Sector_Weekly_Close", 
+  "RSI", 
+  "MA8_Sector_Weekly_Close", 
+  "Sector_Weekly_Price_Change"
+)
+
+# (C) Train/Test Split
+set.seed(123)
+
+# Health
+train_idx_health <- createDataPartition(
+  health_data_clean$Sector_Weekly_Volatility, p = 0.8, list = FALSE
+)
+health_train <- health_data_clean[ train_idx_health, ]
+health_test  <- health_data_clean[-train_idx_health, ]
+
+# Tech
+train_idx_tech <- createDataPartition(
+  tech_data_clean$Sector_Weekly_Volatility, p = 0.8, list = FALSE
+)
+tech_train <- tech_data_clean[ train_idx_tech, ]
+tech_test  <- tech_data_clean[-train_idx_tech, ]
+
+# ============= 2. MODEL TRAINING =============
+# XGBoost requires matrix input for features
+health_train_x <- as.matrix(health_train[, health_features])
+health_train_y <- health_train$Sector_Weekly_Volatility
+
+health_test_x  <- as.matrix(health_test[, health_features])
+health_test_y  <- health_test$Sector_Weekly_Volatility
+
+tech_train_x <- as.matrix(tech_train[, tech_features])
+tech_train_y <- tech_train$Sector_Weekly_Volatility
+
+tech_test_x  <- as.matrix(tech_test[, tech_features])
+tech_test_y  <- tech_test$Sector_Weekly_Volatility
+
+# XGBoost for Health Sector
+set.seed(123)
+xgb_health <- xgboost(
+  data = health_train_x,
+  label = health_train_y,
+  nrounds = 200,
+  objective = "reg:squarederror",
+  eta = 0.1,
+  max_depth = 6,
+  subsample = 0.8,
+  colsample_bytree = 0.8,
+  verbose = 0
+)
+
+# XGBoost for Tech Sector
+set.seed(123)
+xgb_tech <- xgboost(
+  data = tech_train_x,
+  label = tech_train_y,
+  nrounds = 200,
+  objective = "reg:squarederror",
+  eta = 0.1,
+  max_depth = 6,
+  subsample = 0.8,
+  colsample_bytree = 0.8,
+  verbose = 0
+)
+
+# ============= 3. EVALUATION =============
+evaluate_model <- function(actual, predicted) {
+  rmse_val <- sqrt(mean((actual - predicted)^2))
+  mae_val  <- mean(abs(actual - predicted))
+  r2_val   <- cor(actual, predicted)^2
+  data.frame(RMSE = rmse_val, MAE = mae_val, R2 = r2_val)
+}
+
+# Predictions & metrics - Health
+pred_xgb_health_train <- predict(xgb_health, newdata = health_train_x)
+pred_xgb_health_test  <- predict(xgb_health, newdata = health_test_x)
+
+xgb_health_train_eval <- evaluate_model(health_train_y, pred_xgb_health_train)
+xgb_health_test_eval  <- evaluate_model(health_test_y,  pred_xgb_health_test)
+
+# Predictions & metrics - Tech
+pred_xgb_tech_train <- predict(xgb_tech, newdata = tech_train_x)
+pred_xgb_tech_test  <- predict(xgb_tech, newdata = tech_test_x)
+
+xgb_tech_train_eval <- evaluate_model(tech_train_y, pred_xgb_tech_train)
+xgb_tech_test_eval  <- evaluate_model(tech_test_y,  pred_xgb_tech_test)
+
+# Print results
+cat("\n=== XGBoost: Health Sector ===\n")
+cat("Training:\n"); print(xgb_health_train_eval)
+cat("Testing:\n");  print(xgb_health_test_eval)
+
+cat("\n=== XGBoost: Technology Sector ===\n")
+cat("Training:\n"); print(xgb_tech_train_eval)
+cat("Testing:\n");  print(xgb_tech_test_eval)
+
+# ============= 4. VISUALIZATION =============
+
+# 4A. Health Sector Visuals
+health_xgb_results <- data.frame(
+  Actual = health_test_y,
+  Predicted = pred_xgb_health_test
+)
+
+## 1) Scatter: Actual vs Predicted
+ggplot(health_xgb_results, aes(x = Actual, y = Predicted)) +
+  geom_point(color = "darkblue", alpha = 0.7) +
+  geom_abline(slope = 1, intercept = 0, color = "red") +
+  labs(
+    title = "Health Sector (XGB) - Actual vs. Predicted Volatility",
+    x = "Actual Volatility",
+    y = "Predicted Volatility"
+  ) +
+  theme_minimal()
+
+## 2) Time Series Plot
+# If you have a 'Week' or time column in 'health_test'
+health_xgb_results$Week <- health_test$Week
+health_xgb_long <- melt(health_xgb_results, id.vars = "Week")
+
+ggplot(health_xgb_long, aes(x = Week, y = value, color = variable)) +
+  geom_line(size = 1) +
+  labs(
+    title = "Health Sector (XGB) - Actual vs. Predicted Over Time",
+    x = "Week",
+    y = "Volatility",
+    color = "Series"
+  ) +
+  theme_minimal()
+
+## 3) Residual Distribution
+health_xgb_results$Residual <- health_xgb_results$Actual - health_xgb_results$Predicted
+
+ggplot(health_xgb_results, aes(x = Residual)) +
+  geom_histogram(bins = 30, fill = "skyblue", color = "white") +
+  labs(
+    title = "Health Sector (XGB) - Residual Distribution",
+    x = "Residual (Actual - Predicted)",
+    y = "Count"
+  ) +
+  theme_minimal()
+
+# 4B. Technology Sector Visuals
+tech_xgb_results <- data.frame(
+  Actual = tech_test_y,
+  Predicted = pred_xgb_tech_test
+)
+
+## 1) Scatter: Actual vs Predicted
+ggplot(tech_xgb_results, aes(x = Actual, y = Predicted)) +
+  geom_point(color = "firebrick", alpha = 0.7) +
+  geom_abline(slope = 1, intercept = 0, color = "red") +
+  labs(
+    title = "Technology Sector (XGB) - Actual vs. Predicted Volatility",
+    x = "Actual Volatility",
+    y = "Predicted Volatility"
+  ) +
+  theme_minimal()
+
+## 2) Time Series Plot
+tech_xgb_results$Week <- tech_test$Week
+tech_xgb_long <- melt(tech_xgb_results, id.vars = "Week")
+
+ggplot(tech_xgb_long, aes(x = Week, y = value, color = variable)) +
+  geom_line(size = 1) +
+  labs(
+    title = "Technology Sector (XGB) - Actual vs. Predicted Over Time",
+    x = "Week",
+    y = "Volatility",
+    color = "Series"
+  ) +
+  theme_minimal()
+
+## 3) Residual Distribution
+tech_xgb_results$Residual <- tech_xgb_results$Actual - tech_xgb_results$Predicted
+
+ggplot(tech_xgb_results, aes(x = Residual)) +
+  geom_histogram(bins = 30, fill = "tomato", color = "white") +
+  labs(
+    title = "Technology Sector (XGB) - Residual Distribution",
+    x = "Residual (Actual - Predicted)",
+    y = "Count"
+  ) +
+  theme_minimal()
+
+
+
+
+
+# Install and load required libraries
+if (!requireNamespace("ggplot2", quietly = TRUE)) {
+  install.packages("ggplot2")
+}
+library(ggplot2)
+library(randomForest)
+library(iml)
+
+# Step 1: Define the custom prediction wrapper
+rf_predict <- function(model, newdata) {
+  predict(model, newdata = newdata)  # Custom wrapper to ensure compatibility with iml
+}
+
+# Step 2: Create the Predictor object
+predictor_rf_health <- Predictor$new(
+  model = rf_health,                           # Random forest model
+  data = health_train[, health_features],      # Training data for features
+  y = health_train$Sector_Weekly_Volatility,   # Target variable
+  predict.function = rf_predict                # Custom prediction function
+)
+
+# Step 3: Compute SHAP values for a specific instance
+shap_rf_health <- Shapley$new(
+  predictor = predictor_rf_health, 
+  x.interest = health_train[1, health_features]
+)
+
+# Step 4: Plot SHAP values
+plot(shap_rf_health) +
+  ggtitle("SHAP Values for Instance 1 - Health Sector (Random Forest)")
+
+
+
+# Step 1: Define the custom prediction wrapper
+rf_predict <- function(model, newdata) {
+  predict(model, newdata = newdata)
+}
+
+# Step 2: Create the Predictor object for Technology Sector
+predictor_rf_tech <- Predictor$new(
+  model = rf_tech,                              # Random forest model for Technology sector
+  data = tech_train[, tech_features],           # Training data (features only)
+  y = tech_train$Sector_Weekly_Volatility,      # Target variable
+  predict.function = rf_predict                 # Custom prediction function
+)
+
+# Step 3: Compute SHAP values for a specific instance
+shap_rf_tech <- Shapley$new(
+  predictor = predictor_rf_tech,
+  x.interest = tech_train[1, tech_features]     # First instance for explanation
+)
+
+# Step 4: Plot SHAP values
+plot(shap_rf_tech) +
+  ggtitle("SHAP Values for Instance 1 - Technology Sector (Random Forest)")
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+# Define the custom prediction wrapper for XGBoost
+xgb_predict <- function(model, newdata) {
+  predict(model, newdata = as.matrix(newdata))  # Ensure input is a matrix
+}
+
+# Create the Predictor object for XGBoost - Health Sector
+predictor_xgb_health <- Predictor$new(
+  model = xgb_health,                           # XGBoost model for Health sector
+  data = health_train[, health_features],       # Training data (features only)
+  y = health_train$Sector_Weekly_Volatility,    # Target variable
+  predict.function = xgb_predict                # Custom prediction function
+)
+
+# Compute SHAP values for a specific instance
+shap_xgb_health <- Shapley$new(
+  predictor = predictor_xgb_health,
+  x.interest = health_train[1, health_features] # First instance for explanation
+)
+
+# Plot SHAP values
+plot(shap_xgb_health) +
+  ggtitle("SHAP Values for Instance 1 - Health Sector (XGBoost)")
+
+
+
+
+
+
+
+
+
+
+
+# Create the Predictor object for XGBoost - Technology Sector
+predictor_xgb_tech <- Predictor$new(
+  model = xgb_tech,                             # XGBoost model for Technology sector
+  data = tech_train[, tech_features],           # Training data (features only)
+  y = tech_train$Sector_Weekly_Volatility,      # Target variable
+  predict.function = xgb_predict                # Custom prediction function
+)
+
+# Compute SHAP values for a specific instance
+shap_xgb_tech <- Shapley$new(
+  predictor = predictor_xgb_tech,
+  x.interest = tech_train[1, tech_features]     # First instance for explanation
+)
+
+# Plot SHAP values
+plot(shap_xgb_tech) +
+  ggtitle("SHAP Values for Instance 1 - Technology Sector (XGBoost)")
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+# ============= 4. INF4000VISUALIZATION =============
+
+
+library(ggplot2)
+
+ggplot() +
+  geom_line(data = aggregated_health_data, 
+            aes(x = Week, y = Sector_Weekly_Volatility, color = "Health"), size = 1) +
+  geom_line(data = aggregated_technology_data, 
+            aes(x = Week, y = Sector_Weekly_Volatility, color = "Technology"), size = 1) +
+  labs(
+    title = "Weekly Volatility Trends: Health vs. Technology",
+    x = "Week",
+    y = "Weekly Volatility"
+  ) +
+  scale_color_manual(name = "Sector", values = c("Health" = "blue", "Technology" = "red")) +
+  theme_minimal()
+
+
+
+
+
+
+
+
+
+
+
+library(randomForest)
+library(ggplot2)
+library(dplyr)
+
+# Extract feature importance for Health sector
+feat_imp_health <- importance(rf_health, type = 1)
+feat_imp_health_df <- data.frame(
+  Feature = rownames(feat_imp_health),
+  Importance = feat_imp_health[, 1],
+  Sector = "Health"
+)
+
+# Extract feature importance for Technology sector
+feat_imp_tech <- importance(rf_tech, type = 1)
+feat_imp_tech_df <- data.frame(
+  Feature = rownames(feat_imp_tech),
+  Importance = feat_imp_tech[, 1],
+  Sector = "Technology"
+)
+
+# Select top 10 features for each sector
+top10_health <- feat_imp_health_df %>% 
+  arrange(desc(Importance)) %>% 
+  slice_head(n = 11)
+
+top10_tech <- feat_imp_tech_df %>% 
+  arrange(desc(Importance)) %>% 
+  slice_head(n = 11)
+
+# Combine top 10 features from both sectors
+feat_imp_combined <- bind_rows(top10_health, top10_tech)
+
+# Plot combined feature importance
+ggplot(feat_imp_combined, aes(x = reorder(Feature, Importance), y = Importance, fill = Sector)) +
+  geom_bar(stat = "identity", position = "dodge") +
+  coord_flip() +
+  labs(
+    title = "Top Feature Importance: Health vs Technology Sectors (Random Forest)",
+    x = "Feature",
+    y = "Importance",
+    fill = "Sector"
+  ) +
+  theme_minimal()
+
+
+
+
+
+
+
+
+
+ggplot(combined_data, aes(x = Sector_Weekly_Volume, y = Sector_Weekly_Volatility, 
+                          size = Sector_Weekly_Return, color = Sector)) +
+  geom_point(alpha = 0.7) +
+  labs(
+    title = "Volume vs. Volatility: Health vs. Technology",
+    x = "Weekly Volume",
+    y = "Weekly Volatility",
+    size = "Weekly Return"
+  ) +
+  scale_color_manual(values = c("Health" = "blue", "Technology" = "red")) +
+  theme_minimal()
+
+
+
+
+
+library(reshape2)
+library(ggplot2)
+library(dplyr)
+
+# Step 1: Identify top features
+top_features_health <- top10_health$Feature  # From feature importance
+top_features_tech <- top10_tech$Feature      # From feature importance
+
+# Combine top features
+common_features <- union(top_features_health, top_features_tech)
+
+# Step 2: Filter data for top features
+health_corr_data <- aggregated_health_data %>%
+  select(all_of(common_features)) %>%
+  mutate(Sector = "Health")
+
+tech_corr_data <- aggregated_technology_data %>%
+  select(all_of(common_features)) %>%
+  mutate(Sector = "Technology")
+
+# Step 3: Compute correlation matrices
+health_corr_matrix <- cor(health_corr_data %>% select(-Sector), use = "complete.obs")
+tech_corr_matrix <- cor(tech_corr_data %>% select(-Sector), use = "complete.obs")
+
+# Step 4: Reshape correlation matrices for plotting
+health_corr_melted <- melt(health_corr_matrix)
+health_corr_melted$Sector <- "Health"
+
+tech_corr_melted <- melt(tech_corr_matrix)
+tech_corr_melted$Sector <- "Technology"
+
+# Combine melted data
+combined_corr_melted <- bind_rows(health_corr_melted, tech_corr_melted)
+
+# Step 5: Plot the combined heatmap
+ggplot(data = combined_corr_melted, aes(x = Var1, y = Var2, fill = value)) +
+  geom_tile(color = "white") +
+  scale_fill_gradient2(
+    low = "blue", mid = "white", high = "red", midpoint = 0, limit = c(-1, 1)
+  ) +
+  facet_wrap(~ Sector) +
+  labs(
+    title = "Correlation Heatmap: Top Features in Health and Technology Sectors",
+    x = "Feature 1",
+    y = "Feature 2"
+  ) +
+  theme_minimal() +
+  theme(
+    axis.text.x = element_text(angle = 45, vjust = 1, hjust = 1),
+    strip.background = element_rect(fill = "lightgrey"),
+    strip.text = element_text(face = "bold")
+  )
+
+
+
+
+
+
+
+
+
+
+
+
+
+# Combine data for Health and Technology sectors
+health_rf_results <- data.frame(
+  Week = health_test$Week,
+  Actual = health_test$Sector_Weekly_Volatility,
+  Predicted = predict(rf_health, newdata = health_test),
+  Sector = "Health"
+)
+
+tech_rf_results <- data.frame(
+  Week = tech_test$Week,
+  Actual = tech_test$Sector_Weekly_Volatility,
+  Predicted = predict(rf_tech, newdata = tech_test),
+  Sector = "Technology"
+)
+
+# Combine the datasets
+combined_rf_results <- bind_rows(health_rf_results, tech_rf_results)
+
+# Improved time-series visualization
+ggplot(combined_rf_results, aes(x = Week)) +
+  geom_line(aes(y = Actual, color = "Actual"), size = 1) +
+  geom_line(aes(y = Predicted, color = "Predicted"), size = 1) +
+  facet_wrap(~ Sector, ncol = 2, scales = "free_y") +
+  labs(
+    title = "Actual vs. Predicted Volatility: Health and Technology Sectors",
+    x = "Week",
+    y = "Volatility",
+    color = "Legend"
+  ) +
+  scale_color_manual(values = c("Actual" = "blue", "Predicted" = "red")) +
+  theme_minimal() +
+  theme(
+    strip.background = element_rect(fill = "lightgrey"),
+    strip.text = element_text(face = "bold"),
+    axis.text.x = element_text(angle = 45, vjust = 1, hjust = 1),
+    legend.position = "top"
+  )
+
+
+
+
+
+
+
+
