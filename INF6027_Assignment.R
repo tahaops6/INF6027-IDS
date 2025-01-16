@@ -1,6 +1,36 @@
 ###########################################################
+#                     Libraries
+###########################################################
+# Install necessary libraries if not already installed
+if (!requireNamespace("iml", quietly = TRUE)) install.packages("iml")
+if (!requireNamespace("caret", quietly = TRUE)) install.packages("caret")
+if (!requireNamespace("randomForest", quietly = TRUE)) install.packages("randomForest")
+if (!requireNamespace("xgboost", quietly = TRUE)) install.packages("xgboost")
+if (!requireNamespace("ggplot2", quietly = TRUE)) install.packages("ggplot2")
+if (!requireNamespace("reshape2", quietly = TRUE)) install.packages("reshape2")
+if (!requireNamespace("plotly", quietly = TRUE)) install.packages("plotly")
+if (!requireNamespace("dplyr", quietly = TRUE)) install.packages("dplyr")
+if (!requireNamespace("lubridate", quietly = TRUE)) install.packages("lubridate")
+if (!requireNamespace("zoo", quietly = TRUE)) install.packages("zoo")
+if (!requireNamespace("GGally", quietly = TRUE)) install.packages("GGally")
+
+# Load required libraries
+library(iml)
+library(caret)
+library(randomForest)
+library(xgboost)
+library(ggplot2)
+library(reshape2)
+library(plotly)
+library(dplyr)
+library(lubridate)
+library(zoo)
+library(GGally)
+
+###########################################################
 #                     Data Loading
 ###########################################################
+
 
 
 # Set main project directory (adjust this path as needed)
@@ -94,7 +124,6 @@ technology_data <- lapply(technology_data, calculate_daily_returns)
 
 
 
-library(dplyr)
 
 # Function to filter data from 2010 onwards
 filter_date_range <- function(data, start_date = "2005-01-01") {
@@ -108,7 +137,7 @@ filtered_technology_data <- lapply(technology_data, filter_date_range)
 
 
 
-library(lubridate)
+
 
 # Function to calculate VWAP for each week
 aggregate_to_weekly_with_vwap <- function(data) {
@@ -142,7 +171,7 @@ technology_data_weekly <- lapply(filtered_technology_data, aggregate_to_weekly_w
 ###########################################################
 
 
-library(dplyr)
+
 
 # Enhanced aggregation function
 aggregate_sector_data <- function(data_list, weights = NULL) {
@@ -201,7 +230,7 @@ aggregated_technology_data <- aggregate_sector_data(technology_data_weekly)
 
 
 
-library(zoo)
+
 
 add_lagged_variables <- function(data, lag = 1) {
   data <- data %>%
@@ -334,8 +363,7 @@ aggregated_technology_data <- add_bollinger_bands(aggregated_technology_data)
 #               Exploratory Data Analysis
 ###########################################################
 
-library(ggplot2)
-library(dplyr)
+
 
 # Combine data for easy comparison
 combined_data <- aggregated_health_data %>%
@@ -347,7 +375,7 @@ ggplot(combined_data, aes(x = Sector_Weekly_Volume, y = Sector_Weekly_Volatility
   geom_point(alpha = 0.6) +
   facet_wrap(~ Sector, scales = "free_x") + 
   labs(
-    title = "Volume vs. Volatility in Health vs. Technology Sectors",
+    title = "Volume vs. Volatility (Health vs. Technology Sectors)",
     x = "Weekly Volume",
     y = "Weekly Volatility"
   ) +
@@ -385,8 +413,7 @@ ggplot(combined_data, aes(x = Sector_Weekly_Return, fill = Sector)) +
 
 
 
-install.packages("GGally")
-library(GGally)
+
 
 # Select numeric features of interest for Health
 health_numeric <- aggregated_health_data %>%
@@ -416,7 +443,7 @@ ggpairs(
 
 
 
-library(plotly)
+
 
 bubble_plot <- ggplot(combined_data, 
                       aes(x = Sector_Weekly_Volume, y = Sector_VWAP, 
@@ -440,7 +467,7 @@ ggplotly(bubble_plot)
 
 
 
-library(reshape2)  # For melt function
+
 
 # 4.1 - Health Sector Correlation Heatmap
 health_numeric <- aggregated_health_data %>%
@@ -520,7 +547,6 @@ ggplot(combined_data, aes(x = Sector_VWAP, y = Sector_Weekly_Return, color = Sec
 
 
 
-library(ggplot2)
 
 # 1.1 - Compare Sector Weekly Close
 ggplot() +
@@ -563,12 +589,7 @@ ggplot() +
 ###########################################################
 
 
-# =====================================
-# 1. Load Libraries
-# =====================================
-library(dplyr)
-library(randomForest)
-library(ggplot2)
+
 
 # =====================================
 # 2. Remove Rows with Missing Data
@@ -643,9 +664,7 @@ ggplot(top10_features, aes(x = reorder(Feature, Importance), y = Importance)) +
 
 
 
-library(dplyr)
-library(randomForest)
-library(ggplot2)
+
 
 # =====================================
 # 2. Remove Rows with Missing Data
@@ -727,15 +746,7 @@ ggplot(top10_features, aes(x = reorder(Feature, Importance), y = Importance)) +
 ###########################################################
 
 # ============= 1. SETUP & DATA PREP =============
-install.packages("randomForest")
-install.packages("caret")
-install.packages("dplyr")
-install.packages("ggplot2")
 
-library(randomForest)
-library(caret)
-library(dplyr)
-library(ggplot2)
 
 # We'll assume you have two data frames:
 #   aggregated_health_data
@@ -946,17 +957,8 @@ ggplot(tech_rf_results, aes(x = Residual)) +
 ###########################################################
 
 # ============= 1. SETUP & DATA PREP =============
-install.packages("xgboost")
-install.packages("caret")
-install.packages("dplyr")
-install.packages("ggplot2")
-install.packages("reshape2")
 
-library(xgboost)
-library(caret)
-library(dplyr)
-library(ggplot2)
-library(reshape2)
+
 
 # (A) Remove NA rows
 health_data_clean <- na.omit(aggregated_health_data)
@@ -1176,17 +1178,17 @@ ggplot(tech_xgb_results, aes(x = Residual)) +
 
 
 
+
+
+
+
+
 ###########################################################
 #                 Data Explainability 
 ###########################################################
 
-# Install and load required libraries
-if (!requireNamespace("ggplot2", quietly = TRUE)) {
-  install.packages("ggplot2")
-}
-library(ggplot2)
-library(randomForest)
-library(iml)
+
+
 
 # Step 1: Define the custom prediction wrapper
 rf_predict <- function(model, newdata) {
@@ -1509,7 +1511,7 @@ ggplot(combined_rf_results, aes(x = Week)) +
   geom_line(aes(y = Predicted, color = "Predicted"), size = 1) +
   facet_wrap(~ Sector, ncol = 2, scales = "free_y") +
   labs(
-    title = "Actual vs. Predicted Volatility: Health and Technology Sectors",
+    title = "Random Forest Actual vs. Predicted Volatility: Health and Technology Sectors",
     x = "Week",
     y = "Volatility",
     color = "Legend"
@@ -1527,6 +1529,141 @@ ggplot(combined_rf_results, aes(x = Week)) +
 
 
 
+
+
+
+
+
+# Combine data for XGBoost predictions
+health_xgb_results <- data.frame(
+  Week = health_test$Week,
+  Actual = health_test$Sector_Weekly_Volatility,
+  Predicted = predict(xgb_health, newdata = health_test_x),
+  Sector = "Health"
+)
+
+tech_xgb_results <- data.frame(
+  Week = tech_test$Week,
+  Actual = tech_test$Sector_Weekly_Volatility,
+  Predicted = predict(xgb_tech, newdata = tech_test_x),
+  Sector = "Technology"
+)
+
+# Combine the datasets
+combined_xgb_results <- bind_rows(health_xgb_results, tech_xgb_results)
+
+# Visualization for XGBoost
+ggplot(combined_xgb_results, aes(x = Week)) +
+  geom_line(aes(y = Actual, color = "Actual"), size = 1) +
+  geom_line(aes(y = Predicted, color = "Predicted"), size = 1) +
+  facet_wrap(~ Sector, ncol = 2, scales = "free_y") +
+  labs(
+    title = "XGBoost Actual vs. Predicted Volatility: Health and Technology Sectors",
+    x = "Week",
+    y = "Volatility",
+    color = "Legend"
+  ) +
+  scale_color_manual(values = c("Actual" = "blue", "Predicted" = "red")) +
+  theme_minimal() +
+  theme(
+    strip.background = element_rect(fill = "lightgrey"),
+    strip.text = element_text(face = "bold"),
+    axis.text.x = element_text(angle = 45, vjust = 1, hjust = 1),
+    legend.position = "top"
+  )
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+# Install and load required libraries
+if (!requireNamespace("iml", quietly = TRUE)) {
+  install.packages("iml")
+}
+library(iml)
+library(dplyr)
+library(ggplot2)
+
+# Function to compute SHAP values for all instances
+compute_shap_values <- function(predictor, data, model_name) {
+  shapley <- Shapley$new(predictor)
+  shap_values <- shapley$results
+  shap_values$Model <- model_name
+  shap_values$Feature <- rownames(shap_values) # Assign feature names to a new column
+  return(shap_values)
+}
+
+# Health Sector - Random Forest
+predictor_rf_health <- Predictor$new(
+  model = rf_health,
+  data = health_train[, health_features],
+  y = health_train$Sector_Weekly_Volatility,
+  predict.function = rf_predict
+)
+shap_rf_health <- compute_shap_values(predictor_rf_health, health_train[, health_features], "RF_Health")
+
+# Technology Sector - Random Forest
+predictor_rf_tech <- Predictor$new(
+  model = rf_tech,
+  data = tech_train[, tech_features],
+  y = tech_train$Sector_Weekly_Volatility,
+  predict.function = rf_predict
+)
+shap_rf_tech <- compute_shap_values(predictor_rf_tech, tech_train[, tech_features], "RF_Technology")
+
+# Health Sector - XGBoost
+predictor_xgb_health <- Predictor$new(
+  model = xgb_health,
+  data = health_train[, health_features],
+  y = health_train$Sector_Weekly_Volatility,
+  predict.function = xgb_predict
+)
+shap_xgb_health <- compute_shap_values(predictor_xgb_health, health_train[, health_features], "XGB_Health")
+
+# Technology Sector - XGBoost
+predictor_xgb_tech <- Predictor$new(
+  model = xgb_tech,
+  data = tech_train[, tech_features],
+  y = tech_train$Sector_Weekly_Volatility,
+  predict.function = xgb_predict
+)
+shap_xgb_tech <- compute_shap_values(predictor_xgb_tech, tech_train[, tech_features], "XGB_Technology")
+
+# Combine all SHAP values
+shap_combined <- bind_rows(shap_rf_health, shap_rf_tech, shap_xgb_health, shap_xgb_tech)
+
+# Ensure feature names are properly associated
+shap_combined <- shap_combined %>%
+  rename(Feature = variable) %>%
+  mutate(Average_SHAP = abs(value))
+
+# Compute average SHAP values for each feature and model
+average_shap <- shap_combined %>%
+  group_by(Model, Feature) %>%
+  summarize(Average_SHAP = mean(Average_SHAP, na.rm = TRUE)) %>%
+  arrange(Model, desc(Average_SHAP))
+
+# Plot average SHAP values
+ggplot(average_shap, aes(x = reorder(Feature, Average_SHAP), y = Average_SHAP, fill = Model)) +
+  geom_bar(stat = "identity", position = "dodge") +
+  coord_flip() +
+  labs(
+    title = "Average SHAP Values by Model and Feature",
+    x = "Feature",
+    y = "Average SHAP Value",
+    fill = "Model"
+  ) +
+  theme_minimal()
 
 
 
