@@ -591,16 +591,7 @@ ggplot() +
 
 
 
-# =====================================
-# 2. Remove Rows with Missing Data
-# =====================================
-# Assume you have a dataframe 'aggregated_health_data' which contains:
-#   Sector_Weekly_Volatility,
-#   Lagged_Sector_Weekly_Return, Lagged_Sector_Weekly_Volatility,
-#   MA4_Sector_Weekly_Close, MA8_Sector_Weekly_Close,
-#   RSI, MACD, ATR,
-#   Sector_Weekly_Price_Change, Sector_Weekly_Volume, ...
-# and potentially other features.
+
 
 # Step A: Remove any rows containing NA values in those columns.
 aggregated_health_data_clean <- na.omit(aggregated_health_data)
@@ -666,16 +657,7 @@ ggplot(top10_features, aes(x = reorder(Feature, Importance), y = Importance)) +
 
 
 
-# =====================================
-# 2. Remove Rows with Missing Data
-# =====================================
-# Assume you have a dataframe 'aggregated_health_data' which contains:
-#   Sector_Weekly_Volatility,
-#   Lagged_Sector_Weekly_Return, Lagged_Sector_Weekly_Volatility,
-#   MA4_Sector_Weekly_Close, MA8_Sector_Weekly_Close,
-#   RSI, MACD, ATR,
-#   Sector_Weekly_Price_Change, Sector_Weekly_Volume, ...
-# and potentially other features.
+
 
 # Step A: Remove any rows containing NA values in those columns.
 aggregated_technology_data_clean <- na.omit(aggregated_technology_data)
@@ -748,10 +730,6 @@ ggplot(top10_features, aes(x = reorder(Feature, Importance), y = Importance)) +
 # ============= 1. SETUP & DATA PREP =============
 
 
-# We'll assume you have two data frames:
-#   aggregated_health_data
-#   aggregated_technology_data
-# each containing your chosen top 10 features (plus 'Sector_Weekly_Volatility').
 
 # (A) Handle Missing Values by Removing Rows with NAs
 health_data_clean <- na.omit(aggregated_health_data)
@@ -855,7 +833,7 @@ cat("Training:\n"); print(rf_tech_train_eval)
 cat("Testing:\n");  print(rf_tech_test_eval)
 
 # ============= 4. VISUALIZATION =============
-# We'll create 3 example plots for each sector to interpret the results.
+
 
 ## 4A. Health Sector Visuals
 # 1) Scatter Plot: Actual vs. Predicted on Test
@@ -1007,7 +985,7 @@ tech_train <- tech_data_clean[ train_idx_tech, ]
 tech_test  <- tech_data_clean[-train_idx_tech, ]
 
 # ============= 2. MODEL TRAINING =============
-# XGBoost requires matrix input for features
+
 health_train_x <- as.matrix(health_train[, health_features])
 health_train_y <- health_train$Sector_Weekly_Volatility
 
